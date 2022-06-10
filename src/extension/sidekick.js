@@ -43,6 +43,7 @@ export default async function injectSidekick(config, display) {
         'repo',
         'ref',
         'host',
+        'token',
         'devMode',
         'pushDown',
         'adminVersion',

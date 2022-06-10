@@ -259,6 +259,13 @@ async function updateHelpContent() {
     }
   });
 
+  // listen for login details from admin.hlx.page
+  chrome.runtime.onMessageExternal.addListener((request, { origin }) => {
+    if (origin === 'https://admin.hlx.page') {
+      // extract login token and add to project config
+    }
+  });
+
   // todo: find alternative to programmatic request handling using chrome.webRequest
   // https://stackoverflow.com/questions/70659545/how-to-handle-chrome-webrequest-onheadersreceived-event-using-declarativenetrequ
   // if (chrome.webRequest) {

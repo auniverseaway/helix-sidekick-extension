@@ -99,10 +99,11 @@
    * @prop {plugin[]} plugins An array of plugin configurations (optional)
    * @prop {string} outerHost The outer CDN's host name (optional)
    * @prop {string} host The production host name to publish content to (optional)
-   * @prop {boolean} byocdn=false <pre>true</pre> if the production host is a 3rd party CDN
+   * @prop {string} token The authentication token for the Admin API (optional)
+   * @prop {string} extensionId The ID of the browser extension (optional)
    * @prop {boolean} devMode=false Loads configuration and plugins from the developmemt environment
    * @prop {boolean} pushDown=false <pre>true</pre> to have the sidekick push down page content
-   * @prop {string} pushDownSelector The CSS selector for absolute elements to also push down
+   * @prop {string} pushDownSelector= The CSS selector for absolute elements to also push down
    * @prop {viewConfig[]} specialViews An array of custom view configurations (optional)
    * @prop {number} adminVersion The specific version of admin service to use (optional)
    */
@@ -769,6 +770,25 @@
   }
 
   /**
+   * Returns the fetch options used for Admin API calls.
+   * @private
+   * @param {Object} config The sidekick configuration
+   * @param {Object} overrides The optional overrides
+   */
+  function getAdminOptions({ token }, overrides = {}) {
+    const opts = {
+      cache: 'no-store',
+      ...overrides,
+    };
+    if (token) {
+      opts.headers = {
+        authentication: `Token ${token}`,
+      };
+    }
+    return opts;
+  }
+
+  /**
    * Adds the edit plugin to the sidekick.
    * @private
    * @param {Sidekick} sk The sidekick
@@ -1177,6 +1197,7 @@
       sk.isEditor() ? '' : sk.location.pathname,
     );
     loginUrl.searchParams.set('loginRedirect', 'https://www.hlx.live/tools/sidekick/login-success');
+    loginUrl.searchParams.set('extensionId', sk.config.extensionId);
     if (selectAccount) {
       loginUrl.searchParams.set('selectAccount', true);
     }
@@ -1186,10 +1207,7 @@
     const loginCheck = window.setInterval(async () => {
       if (seconds < 59) {
         seconds += 1;
-        if ((await fetch('https://admin.hlx.page/profile', {
-          cache: 'no-store',
-          credentials: 'include',
-        })).ok) {
+        if ((await fetch('https://admin.hlx.page/profile', getAdminOptions(sk.config))).ok) {
           // re-fetch status
           loggedIn = true;
           window.clearInterval(loginCheck);
@@ -1225,10 +1243,7 @@
    * @param {Sidekick} sk The sidekick
    */
   function logout(sk) {
-    fetch('https://admin.hlx.page/logout', {
-      cache: 'no-store',
-      credentials: 'include',
-    })
+    fetch('https://admin.hlx.page/logout', getAdminOptions(sk.config))
       .then(() => {
         fireEvent(sk, 'loggedout');
         window.location.reload();
@@ -1685,7 +1700,11 @@
      * @returns {Sidekick} The sidekick
      */
     async fetchStatus() {
-      const { owner, repo, ref } = this.config;
+      const {
+        owner,
+        repo,
+        ref,
+      } = this.config;
       if (!owner || !repo || !ref) {
         return this;
       }
@@ -1699,7 +1718,7 @@
         apiUrl.searchParams.append('editUrl', this.isEditor() ? href : 'auto');
         this.status.apiUrl = apiUrl.toString();
       }
-      fetch(this.status.apiUrl, { cache: 'no-store', credentials: 'include' })
+      fetch(this.status.apiUrl, getAdminOptions(this.config))
         .then((resp) => {
           // check for error status
           if (!resp.ok) {
@@ -2470,7 +2489,7 @@
         // update preview
         resp = await fetch(
           getAdminUrl(config, this.isContent() ? 'preview' : 'code', path),
-          { method: 'POST', credentials: 'include' },
+          getAdminOptions(config, { method: 'POST' }),
         );
         if (this.isEditor() || this.isInner() || this.isDev()) {
           // bust client cache
@@ -2500,7 +2519,7 @@
         // delete preview
         resp = await fetch(
           getAdminUrl(config, this.isContent() ? 'preview' : 'code', path),
-          { method: 'DELETE', credentials: 'include' },
+          getAdminOptions(config, { method: 'DELETE' }),
         );
         // also unpublish if published
         if (status.live && status.live.lastModified) {
@@ -2537,7 +2556,7 @@
       try {
         resp = await fetch(
           getAdminUrl(config, 'live', purgeURL.pathname),
-          { method: 'POST', credentials: 'include' },
+          getAdminOptions(config, { method: 'POST' }),
         );
         // bust client cache for live and production
         if (config.outerHost) {
@@ -2569,7 +2588,7 @@
         // delete live
         resp = await fetch(
           getAdminUrl(config, 'live', path),
-          { method: 'DELETE', credentials: 'include' },
+          getAdminOptions(config, { method: 'DELETE' }),
         );
         fireEvent(this, 'unpublished', path);
       } catch (e) {
