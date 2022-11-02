@@ -357,12 +357,7 @@ class SidekickTest extends EventEmitter {
       this.page
         .goto(`file://${__dirname}/fixtures/${this.fixture}`, { waitUntil: 'load' })
         .then(() => this.pre(this.page))
-        .then(() => this.page.evaluate(async (
-          testLocation,
-          skCfg,
-          isBookmarklet,
-          checkEvents = [],
-        ) => {
+        .then(() => this.page.evaluate(async (testLocation, skCfg, isBookmarklet) => {
           // set test location
           if (testLocation) {
             let input = document.getElementById('sidekick_test_location');
@@ -447,7 +442,6 @@ class SidekickTest extends EventEmitter {
             'cssloaded',
             'langloaded',
             'pluginsloaded',
-            ...checkEvents,
           ].forEach((eventType) => {
             window.hlx.sidekick.addEventListener(eventType, (evt) => {
               window.hlx.sidekickEvents[eventType] = evt.detail;
@@ -467,7 +461,7 @@ class SidekickTest extends EventEmitter {
               });
             });
           });
-        }, pageUrl || this.url, this.sidekickConfig, !this.loadModule, this.checkEvents))
+        }, pageUrl || this.url, this.sidekickConfig, !this.loadModule))
         // wait until sidekick is fully loaded
         .then(() => sleep(+this.sleep))
         .then(() => this.post(this.page))

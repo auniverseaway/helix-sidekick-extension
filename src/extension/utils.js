@@ -12,6 +12,8 @@
 
 'use strict';
 
+import {} from './lib/js-yaml.min.js';
+
 export const MANIFEST = chrome.runtime.getManifest();
 
 export const SHARE_PREFIX = '/tools/sidekick/';
@@ -70,7 +72,6 @@ export async function getMountpoints(owner, repo, ref) {
   const fstab = `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/fstab.yaml`;
   const res = await fetch(fstab);
   if (res.ok) {
-    await import('./lib/js-yaml.min.js');
     try {
       const { mountpoints = {} } = jsyaml.load(await res.text());
       return Object.values(mountpoints).map((mp) => {
@@ -412,8 +413,8 @@ export async function updateProjectConfigs() {
       // eslint-disable-next-line no-await-in-loop
       await setProject(configs[i]);
     }
-    // TODO: remove old project configs
-    // await removeConfig('sync', 'hlxSidekickConfigs');
+    // remove old project configs
+    await removeConfig('sync', 'hlxSidekickConfigs');
     log.info('project config updated');
   }
 }
